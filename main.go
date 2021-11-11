@@ -425,7 +425,9 @@ func checkIfStdinIsPiped() error {
 func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 	testsOutputs := make(map[string][]string)
 	for _, status := range allTests {
-		testsOutputs[status.TestName] = make([]string, 0)
+		if _, ok := testsOutputs[status.TestName]; !ok {
+			testsOutputs[status.TestName] = make([]string, 0)
+		}
 		outputLine := ""
 		for _, output := range status.Output {
 			outputLine += output
@@ -443,6 +445,9 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 				} else {
 					testName, ok := jsonObj["Test"]
 					if ok {
+						if _, ok := testsOutputs[testName.(string)]; !ok {
+							testsOutputs[testName.(string)] = make([]string, 0)
+						}
 						testsOutputs[testName.(string)] = append(testsOutputs[testName.(string)], outputLine)
 					} else {
 						testsOutputs[status.TestName] = append(testsOutputs[status.TestName], outputLine)
