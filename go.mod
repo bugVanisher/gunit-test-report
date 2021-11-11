@@ -1,4 +1,4 @@
-module github.com/vakenbolt/go-test-report
+module git.garena.com/shopee/live-streaming/livetech_qa/go-test-report
 
 go 1.13
 
