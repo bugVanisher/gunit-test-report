@@ -159,15 +159,21 @@ func TestReadTestDataFromStdIn(t *testing.T) {
 {"Time":"2020-07-10T01:24:44.270071-05:00","Action":"output","Package":"go-test-report","Test":"TestFunc3","Output":"sample output\n"}
 {"Time":"2020-07-10T01:24:44.270295-05:00","Action":"output","Package":"go-test-report","Test":"TestFunc3","Output":"--- FAIL: TestFunc3 (0.00s)\n"}
 {"Time":"2020-07-10T01:24:44.270311-05:00","Action":"fail","Package":"go-test-report","Test":"TestFunc3","Elapsed":0}
+{"Time":"2021-11-10T21:28:34.882842+08:00","Action":"output","Package":"command-line-arguments","Test":"TestRoomReport2TransCode/Test3Report10Success","Output":"{\"level\":\"info\",\"Test\":\"TestRoomReport2TransCode/Test3Report10Success\",\"time\":\"2021-11-10T21:28:34+08:00\",\"message\":\"resp:[{ID:90762 AppID:LS RoomID:LS:1636550819514658 SessionID:LS:1636551159 CdnID:TXCLOUD FlowRatio:1 PullURL:rtmp://rtmp-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159 PushURL:rtmp://push-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159?txSecret=01365d8fd909f78fbbfe90f8c171993c\u0026txTime=618FBD65\u0026pushDomain=push-tx.livestream.shopee.com\u0026cdnID=TXCLOUD\u0026session_id=1636551159 TranscodeTpl: TransferAddr:10.144.25.67:8080 Status:1 StartTime:1636550885902 DispatchTimes:0 CTime:1636550885902 MTime:1636550907033 DomainID:1 QualityLevelID:10 TaskQualityLevelID:0 TaskType:2 ClientIP: CostMode:1 SrcCdnID:TXCLOUD SrcDomainID:1 TaskSrc:1 EndTime:0 BrokenTimes:0 BrokenDuration:0 Bitrate:0 Fps:0 Delay:0 PacketLossRate:0 HealthDegree:0} {ID:90764 AppID:LS RoomID:LS:1636550819514658 SessionID:LS:1636551159 CdnID:TXCLOUD FlowRatio:1 PullURL:rtmp://rtmp-tx.livestream.s"}
+{"Time":"2021-11-10T21:28:34.883377+08:00","Action":"output","Package":"command-line-arguments","Test":"TestRoomReport2TransCode/Test3Report10Success","Output":"hopee.com/live/33872_id-test-1636550819514658-1636551159_hd PushURL:rtmp://push-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159_hd?txSecret=1144f8a67dfe64ae3f36d8e5a7ce507d\u0026txTime=618FBD7D\u0026pushDomain=push-tx.livestream.shopee.com\u0026cdnID=TXCLOUD\u0026session_id=1636551159 TranscodeTpl:hd TransferAddr:- Status:1 StartTime:1636550909745 DispatchTimes:1 CTime:1636550909747 MTime:1636550909747 DomainID:1 QualityLevelID:10 TaskQualityLevelID:10 TaskType:0 ClientIP: CostMode:1 SrcCdnID:TXCLOUD SrcDomainID:1 TaskSrc:1 EndTime:0 BrokenTimes:0 BrokenDuration:0 Bitrate:0 Fps:0 Delay:0 PacketLossRate:0 HealthDegree:0} {ID:90765 AppID:LS RoomID:LS:1636550819514658 SessionID:LS:1636551159 CdnID:TXCLOUD FlowRatio:1 PullURL:rtmp://rtmp-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159_sd PushURL:rtmp://push-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159_sd?txSecret=625c6a314de35e6a80f6e2ff7eeb3e3e\u0026txTime=618FBD7D\u0026pushDomain=push-tx.livestream.shopee.com\u0026cdnID=T"}
+{"Time":"2021-11-10T21:28:34.88985+08:00","Action":"output","Package":"command-line-arguments","Test":"TestRoomReport2TransCode/Test3Report10Success","Output":"XCLOUD\u0026session_id=1636551159 TranscodeTpl:sd TransferAddr:- Status:1 StartTime:1636550909745 DispatchTimes:1 CTime:1636550909749 MTime:1636550909749 DomainID:1 QualityLevelID:10 TaskQualityLevelID:20 TaskType:0 ClientIP: CostMode:1 SrcCdnID:TXCLOUD SrcDomainID:1 TaskSrc:1 EndTime:0 BrokenTimes:0 BrokenDuration:0 Bitrate:0 Fps:0 Delay:0 PacketLossRate:0 HealthDegree:0} {ID:90763 AppID:LS RoomID:LS:1636550819514658 SessionID:LS:1636551159 CdnID:TXCLOUD FlowRatio:1 PullURL:rtmp://rtmp-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159_flu PushURL:rtmp://push-tx.livestream.shopee.com/live/33872_id-test-1636550819514658-1636551159_flu?txSecret=57332a1862c318d74e899e9891cf4051\u0026txTime=618FBD69\u0026pushDomain=push-tx.livestream.shopee.com\u0026cdnID=TXCLOUD\u0026session_id=1636551159 TranscodeTpl:flu TransferAddr:- Status:1 StartTime:1636550889754 DispatchTimes:1 CTime:1636550889756 MTime:1636550907033 DomainID:1 QualityLevelID:10 TaskQualityLevelID:30 TaskType:0 ClientIP: CostMode:1 SrcCdnID:TXCLOUD SrcDomain"}
+{"Time":"2021-11-10T21:28:34.895624+08:00","Action":"output","Package":"command-line-arguments","Test":"TestRoomReport2TransCode/Test3Report10Success","Output":"ID:1 TaskSrc:1 EndTime:0 BrokenTimes:0 BrokenDuration:0 Bitrate:0 Fps:0 Delay:0 PacketLossRate:0 HealthDegree:0}]\"}\n"}
+{"Time":"2021-11-10T21:28:34.895651+08:00","Action":"output","Package":"command-line-arguments","Test":"TestRoomReport2TransCode/Test3Report10Success","Output":"{\"Test\":\"TestRoomReport2TransCode\",\"time\":\"2021-11-10T21:28:34+08:00\",\"message\":\"try to delete roomId:1636550819514658\"}\n"}
 `
 	stdinScanner := bufio.NewScanner(strings.NewReader(data))
 	cmd := &cobra.Command{}
 	allPackageNames, allTests, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
+	formatAllTests(allTests)
 	assertions.Nil(err)
-	assertions.Len(allPackageNames, 2)
+	assertions.Len(allPackageNames, 3)
 	assertions.Contains(allPackageNames, "go-test-report")
 	assertions.Contains(allPackageNames, "package2")
-	assertions.Len(allTests, 3)
+	assertions.Len(allTests, 4)
 	assertions.Contains(allTests, "go-test-report.TestFunc1")
 	assertions.Contains(allTests, "package2.TestFunc2")
 	assertions.Contains(allTests, "go-test-report.TestFunc3")
@@ -176,9 +182,9 @@ func TestReadTestDataFromStdIn(t *testing.T) {
 	assertions.True(val.Passed)
 	assertions.Equal("TestFunc1", val.TestName)
 	assertions.Equal(1.25, val.ElapsedTime)
-	assertions.Len(val.Output, 4)
-	assertions.Equal("=== RUN   TestFunc1\n", val.Output[1])
-	assertions.Equal("--- PASS: TestFunc1 (1.25s)", val.Output[2])
+	assertions.Len(val.Output, 2)
+	assertions.Equal("=== RUN   TestFunc1\n", val.Output[0])
+	assertions.Equal("--- PASS: TestFunc1 (1.25s)", val.Output[1])
 	assertions.Equal(0, val.TestFunctionDetail.Line)
 	assertions.Equal(0, val.TestFunctionDetail.Col)
 
@@ -186,9 +192,9 @@ func TestReadTestDataFromStdIn(t *testing.T) {
 	assertions.True(val.Passed)
 	assertions.Equal("TestFunc2", val.TestName)
 	assertions.Equal(0.25, val.ElapsedTime)
-	assertions.Len(val.Output, 4)
-	assertions.Equal("=== RUN   TestFunc2\n", val.Output[1])
-	assertions.Equal("--- PASS: TestFunc2 (0.25s)", val.Output[2])
+	assertions.Len(val.Output, 2)
+	assertions.Equal("=== RUN   TestFunc2\n", val.Output[0])
+	assertions.Equal("--- PASS: TestFunc2 (0.25s)", val.Output[1])
 	assertions.Equal(0, val.TestFunctionDetail.Line)
 	assertions.Equal(0, val.TestFunctionDetail.Col)
 
@@ -196,9 +202,9 @@ func TestReadTestDataFromStdIn(t *testing.T) {
 	assertions.False(val.Passed)
 	assertions.Equal("TestFunc3", val.TestName)
 	assertions.Equal(0.00, val.ElapsedTime)
-	assertions.Len(val.Output, 5)
-	assertions.Equal("=== RUN   TestFunc3\n", val.Output[1])
-	assertions.Equal("--- FAIL: TestFunc3 (0.00s)\n", val.Output[3])
+	assertions.Len(val.Output, 3)
+	assertions.Equal("=== RUN   TestFunc3\n", val.Output[0])
+	assertions.Equal("--- FAIL: TestFunc3 (0.00s)\n", val.Output[2])
 	assertions.Equal(0, val.TestFunctionDetail.Line)
 	assertions.Equal(0, val.TestFunctionDetail.Col)
 }

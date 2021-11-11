@@ -139,6 +139,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 			}()
 			startTestTime := time.Now()
 			allPackageNames, allTests, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
+			formatAllTests(allTests)
 			if err != nil {
 				return errors.New(err.Error() + "\n")
 			}
@@ -238,9 +239,7 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 				status.ElapsedTime = goTestOutputRow.Elapsed
 			}
 			allPackageNames[goTestOutputRow.Package] = nil
-			if strings.Contains(goTestOutputRow.Output, "--- PASS:") {
-				goTestOutputRow.Output = strings.TrimSpace(goTestOutputRow.Output)
-			}
+
 			status.Output = append(status.Output, goTestOutputRow.Output)
 		}
 	}
@@ -421,4 +420,42 @@ func checkIfStdinIsPiped() error {
 		return nil
 	}
 	return errors.New("ERROR: missing ≪ stdin ≫ pipe")
+}
+
+func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
+	testsOutputs := make(map[string][]string)
+	for _, status := range allTests {
+		testsOutputs[status.TestName] = make([]string, 0)
+		outputLine := ""
+		for _, output := range status.Output {
+			outputLine += output
+			if !strings.HasSuffix(outputLine, "\n") {
+				continue
+			} else {
+				jsonStr := strings.TrimSpace(outputLine)
+				var jsonObj map[string]interface{}
+				err := json.Unmarshal([]byte(jsonStr), &jsonObj)
+				if err != nil {
+					if strings.Contains(outputLine, "--- PASS:") {
+						outputLine = jsonStr
+					}
+					testsOutputs[status.TestName] = append(testsOutputs[status.TestName], outputLine)
+				} else {
+					testName, ok := jsonObj["Test"]
+					if ok {
+						testsOutputs[testName.(string)] = append(testsOutputs[testName.(string)], outputLine)
+					} else {
+						testsOutputs[status.TestName] = append(testsOutputs[status.TestName], outputLine)
+					}
+				}
+				outputLine = ""
+			}
+		}
+	}
+	for key, status := range allTests {
+		if _, ok := testsOutputs[status.TestName]; ok {
+			allTests[key].Output = testsOutputs[status.TestName]
+		}
+	}
+	return allTests
 }
