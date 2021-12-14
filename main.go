@@ -424,9 +424,9 @@ func checkIfStdinIsPiped() error {
 
 func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 	testsOutputs := make(map[string][]string)
-	for _, status := range allTests {
-		if _, ok := testsOutputs[status.TestName]; !ok {
-			testsOutputs[status.TestName] = make([]string, 0)
+	for key, status := range allTests {
+		if _, ok := testsOutputs[key]; !ok {
+			testsOutputs[key] = make([]string, 0)
 		}
 		outputLine := ""
 		for _, output := range status.Output {
@@ -438,28 +438,30 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 				var jsonObj map[string]interface{}
 				err := json.Unmarshal([]byte(jsonStr), &jsonObj)
 				if err != nil {
-					if strings.Contains(outputLine, "--- PASS:") {
-						outputLine = jsonStr
-					}
-					testsOutputs[status.TestName] = append(testsOutputs[status.TestName], outputLine)
+					//if strings.Contains(outputLine, "--- PASS:") {
+					//	outputLine = jsonStr
+					//}
+					testsOutputs[key] = append(testsOutputs[key], outputLine)
 				} else {
-					testName, ok := jsonObj["Test"]
-					if ok {
-						if _, ok := testsOutputs[testName.(string)]; !ok {
-							testsOutputs[testName.(string)] = make([]string, 0)
+					testName, foundTest := jsonObj["Test"]
+					packageName, foundPackage := jsonObj["Package"]
+					if foundTest && foundPackage {
+						newKey := packageName.(string) + "." + testName.(string)
+						if _, ok := testsOutputs[newKey]; !ok {
+							testsOutputs[newKey] = make([]string, 0)
 						}
-						testsOutputs[testName.(string)] = append(testsOutputs[testName.(string)], outputLine)
+						testsOutputs[newKey] = append(testsOutputs[newKey], outputLine)
 					} else {
-						testsOutputs[status.TestName] = append(testsOutputs[status.TestName], outputLine)
+						testsOutputs[key] = append(testsOutputs[key], outputLine)
 					}
 				}
 				outputLine = ""
 			}
 		}
 	}
-	for key, status := range allTests {
-		if _, ok := testsOutputs[status.TestName]; ok {
-			allTests[key].Output = testsOutputs[status.TestName]
+	for key, _ := range allTests {
+		if _, ok := testsOutputs[key]; ok {
+			allTests[key].Output = testsOutputs[key]
 		}
 	}
 	return allTests
