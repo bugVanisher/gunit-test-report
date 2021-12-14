@@ -438,9 +438,6 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 				var jsonObj map[string]interface{}
 				err := json.Unmarshal([]byte(jsonStr), &jsonObj)
 				if err != nil {
-					//if strings.Contains(outputLine, "--- PASS:") {
-					//	outputLine = jsonStr
-					//}
 					testsOutputs[key] = append(testsOutputs[key], outputLine)
 				} else {
 					testName, foundTest := jsonObj["Test"]
@@ -450,7 +447,10 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 						if _, ok := testsOutputs[newKey]; !ok {
 							testsOutputs[newKey] = make([]string, 0)
 						}
-						testsOutputs[newKey] = append(testsOutputs[newKey], outputLine)
+						delete(jsonObj, "Test")
+						delete(jsonObj, "Package")
+						bs, _ := json.Marshal(jsonObj)
+						testsOutputs[newKey] = append(testsOutputs[newKey], string(bs)+"\n")
 					} else {
 						testsOutputs[key] = append(testsOutputs[key], outputLine)
 					}
