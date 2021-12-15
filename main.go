@@ -442,7 +442,7 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 				} else {
 					testName, foundTest := jsonObj["Test"]
 					packageName, foundPackage := jsonObj["Package"]
-					if foundTest && foundPackage {
+					if foundTest && foundPackage && packageName != "" {
 						newKey := packageName.(string) + "." + testName.(string)
 						if _, ok := testsOutputs[newKey]; !ok {
 							testsOutputs[newKey] = make([]string, 0)
