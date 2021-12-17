@@ -38,6 +38,7 @@ type (
 		Output             []string
 		Passed             bool
 		Skipped            bool
+		Omitted            bool
 		TestFileName       string
 		TestFunctionDetail testFunctionFilePos
 	}
@@ -203,6 +204,9 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 	allTests = map[string]*testStatus{}
 	allPackageNames = map[string]*types.Nil{}
 
+	parentFailedTestNames := []string{}
+	subFailedTestNames := []string{}
+
 	// read from stdin and parse "go test" results
 	for stdinScanner.Scan() {
 		lineInput := stdinScanner.Bytes()
@@ -213,6 +217,7 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 			}
 		}
 		goTestOutputRow := &goTestOutputRow{}
+
 		if err := json.Unmarshal(lineInput, goTestOutputRow); err != nil {
 			return nil, nil, err
 		}
@@ -230,8 +235,20 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 				status = allTests[key]
 			}
 			if goTestOutputRow.Action == "pass" || goTestOutputRow.Action == "fail" || goTestOutputRow.Action == "skip" {
+				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/")
+				if goTestOutputRow.Action == "fail" {
+					if isParentTest {
+						parentFailedTestNames = append(parentFailedTestNames, key)
+					} else {
+						subFailedTestNames = append(subFailedTestNames, key)
+					}
+				}
+
 				if goTestOutputRow.Action == "pass" {
 					status.Passed = true
+					if isParentTest {
+						status.Omitted = true
+					}
 				}
 				if goTestOutputRow.Action == "skip" {
 					status.Skipped = true
@@ -243,6 +260,15 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 			status.Output = append(status.Output, goTestOutputRow.Output)
 		}
 	}
+
+	for _, parentName := range parentFailedTestNames {
+		for _, subName := range subFailedTestNames {
+			if strings.HasPrefix(subName, parentName) {
+				allTests[parentName].Omitted = true
+			}
+		}
+	}
+
 	return allPackageNames, allTests, nil
 }
 
@@ -358,13 +384,17 @@ func generateReport(tmplData *templateData, allTests map[string]*testStatus, tes
 		if !status.Passed {
 			if !status.Skipped {
 				tmplData.TestResults[tgID].FailureIndicator = "failed"
-				tmplData.NumOfTestFailed++
+				if !status.Omitted {
+					tmplData.NumOfTestFailed++
+				}
 			} else {
 				tmplData.TestResults[tgID].SkippedIndicator = "skipped"
 				tmplData.NumOfTestSkipped++
 			}
 		} else {
-			tmplData.NumOfTestPassed++
+			if !status.Omitted {
+				tmplData.NumOfTestPassed++
+			}
 		}
 		tgCounter++
 		if tgCounter == tmplData.numOfTestsPerGroup {
