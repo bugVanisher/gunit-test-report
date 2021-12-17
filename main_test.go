@@ -336,16 +336,17 @@ func TestGenerateReport(t *testing.T) {
 		Package:            "go-test-report",
 		ElapsedTime:        0,
 		Output:             nil,
-		Passed:             true,
+		Passed:             false,
+		Omitted:            true,
 		TestFileName:       "",
 		TestFunctionDetail: testFunctionFilePos{},
 	}
-	allTests["TestFunc2"] = &testStatus{
+	allTests["Parent/TestFunc1"] = &testStatus{
 		TestName:     "TestFunc2",
 		Package:      "package2",
 		ElapsedTime:  0,
 		Output:       nil,
-		Passed:       true,
+		Passed:       false,
 		TestFileName: "",
 
 		TestFunctionDetail: testFunctionFilePos{},
