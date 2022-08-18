@@ -57,6 +57,7 @@ type (
 		numOfTestsPerGroup             int
 		OutputFilename                 string
 		TestExecutionDate              string
+		FailedTestNames                []string
 	}
 
 	testGroupData struct {
@@ -139,7 +140,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 				}
 			}()
 			startTestTime := time.Now()
-			allPackageNames, allTests, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
+			allPackageNames, allTests, failedTestNames, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
 			newAllTests := formatAllTests(allTests)
 			if err != nil {
 				return errors.New(err.Error() + "\n")
@@ -150,7 +151,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 			if err != nil {
 				return err
 			}
-			err = generateReport(tmplData, newAllTests, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
+			err = generateReport(tmplData, newAllTests, failedTestNames, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
 			elapsedTime := time.Since(startTime)
 			elapsedTimeMsg := []byte(fmt.Sprintf("[go-test-report] finished in %s\n", elapsedTime))
 			if _, err := cmd.OutOrStdout().Write(elapsedTimeMsg); err != nil {
@@ -200,7 +201,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 	return rootCmd, tmplData, flags
 }
 
-func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *cobra.Command) (allPackageNames map[string]*types.Nil, allTests map[string]*testStatus, e error) {
+func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *cobra.Command) (allPackageNames map[string]*types.Nil, allTests map[string]*testStatus, failedTestNames []string, e error) {
 	allTests = map[string]*testStatus{}
 	allPackageNames = map[string]*types.Nil{}
 
@@ -210,16 +211,16 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 	// read from stdin and parse "go test" results
 	for stdinScanner.Scan() {
 		lineInput := stdinScanner.Bytes()
+
 		if flags.verbose {
 			newline := []byte("\n")
 			if _, err := cmd.OutOrStdout().Write(append(lineInput, newline[0])); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 		goTestOutputRow := &goTestOutputRow{}
-
 		if err := json.Unmarshal(lineInput, goTestOutputRow); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if goTestOutputRow.TestName != "" {
 			var status *testStatus
@@ -261,15 +262,22 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 		}
 	}
 
+	failedTestNames = []string{}
+
 	for _, parentName := range parentFailedTestNames {
 		for _, subName := range subFailedTestNames {
 			if strings.HasPrefix(subName, parentName) {
 				allTests[parentName].Omitted = true
 			}
 		}
+		if allTests[parentName].Omitted != true {
+			failedTestNames = append(failedTestNames, parentName)
+		}
 	}
 
-	return allPackageNames, allTests, nil
+	failedTestNames = append(failedTestNames, subFailedTestNames...)
+
+	return allPackageNames, allTests, failedTestNames, nil
 }
 
 func getPackageDetails(allPackageNames map[string]*types.Nil) (testFileDetailsByPackage, error) {
@@ -339,7 +347,7 @@ func (t byName) Less(i, j int) bool {
 	return t[i].name < t[j].name
 }
 
-func generateReport(tmplData *templateData, allTests map[string]*testStatus, testFileDetailByPackage testFileDetailsByPackage, elapsedTestTime time.Duration, reportFileWriter *bufio.Writer) error {
+func generateReport(tmplData *templateData, allTests map[string]*testStatus, failedTestNames []string, testFileDetailByPackage testFileDetailsByPackage, elapsedTestTime time.Duration, reportFileWriter *bufio.Writer) error {
 	// read the html template from the generated embedded asset go file
 	tpl := template.New("test_report.html.template")
 	testReportHTMLTemplateStr, err := hex.DecodeString(testReportHTMLTemplate)
@@ -356,6 +364,7 @@ func generateReport(tmplData *templateData, allTests map[string]*testStatus, tes
 		return err
 	}
 
+	tmplData.FailedTestNames = failedTestNames
 	tmplData.NumOfTestPassed = 0
 	tmplData.NumOfTestFailed = 0
 	tmplData.NumOfTestSkipped = 0

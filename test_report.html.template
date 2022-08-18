@@ -263,6 +263,8 @@
      */
     const data = {{.TestResults}}
 
+    const failTestName = {{.FailedTestNames}}
+
     const report = window.GoTestReport({
                                          data: data,
                                          testResultsElem: document.getElementById('testResults'),
