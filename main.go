@@ -140,7 +140,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 			}()
 			startTestTime := time.Now()
 			allPackageNames, allTests, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
-			formatAllTests(allTests)
+			newAllTests := formatAllTests(allTests)
 			if err != nil {
 				return errors.New(err.Error() + "\n")
 			}
@@ -150,7 +150,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 			if err != nil {
 				return err
 			}
-			err = generateReport(tmplData, allTests, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
+			err = generateReport(tmplData, newAllTests, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
 			elapsedTime := time.Since(startTime)
 			elapsedTimeMsg := []byte(fmt.Sprintf("[go-test-report] finished in %s\n", elapsedTime))
 			if _, err := cmd.OutOrStdout().Write(elapsedTimeMsg); err != nil {
@@ -454,6 +454,7 @@ func checkIfStdinIsPiped() error {
 
 func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 	testsOutputs := make(map[string][]string)
+	testTitles := make(map[string]string)
 	for key, status := range allTests {
 		if _, ok := testsOutputs[key]; !ok {
 			testsOutputs[key] = make([]string, 0)
@@ -487,8 +488,13 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 							delete(jsonObj, "level")
 						}
 						delete(jsonObj, "time")
-						bs, _ := json.Marshal(jsonObj)
-						testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("%s|%s ~ %s\n", logTime, l, string(bs)))
+						title, foundTitle := jsonObj["title"].(string)
+						if foundTitle {
+							testTitles[key] = title
+						} else {
+							bs, _ := json.Marshal(jsonObj)
+							testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("%s|%s ~ %s\n", logTime, l, string(bs)))
+						}
 					} else {
 						testsOutputs[key] = append(testsOutputs[key], outputLine)
 					}
@@ -497,10 +503,19 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 			}
 		}
 	}
+	newAllTests := make(map[string]*testStatus)
 	for key, _ := range allTests {
 		if _, ok := testsOutputs[key]; ok {
-			allTests[key].Output = testsOutputs[key]
+			if title, ok := testTitles[key]; ok {
+				newKey := fmt.Sprintf("%s(%s)", key, title)
+				newAllTests[newKey] = allTests[key]
+				newAllTests[newKey].Output = testsOutputs[key]
+				newAllTests[newKey].TestName = fmt.Sprintf("%s(%s)", newAllTests[newKey].TestName, title)
+			} else {
+				newAllTests[key] = allTests[key]
+				newAllTests[key].Output = testsOutputs[key]
+			}
 		}
 	}
-	return allTests
+	return newAllTests
 }
