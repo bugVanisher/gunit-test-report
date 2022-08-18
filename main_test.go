@@ -279,7 +279,7 @@ func TestReadTestDataFromStdIn(t *testing.T) {
 `
 	stdinScanner := bufio.NewScanner(strings.NewReader(data))
 	cmd := &cobra.Command{}
-	allPackageNames, allTests, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
+	allPackageNames, allTests, _, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
 	formatAllTests(allTests)
 	assertions.Nil(err)
 	assertions.Len(allPackageNames, 3)
@@ -395,7 +395,7 @@ func TestGenerateReport(t *testing.T) {
 	}
 	elapsedTestTime := 3 * time.Second
 	writer := bufio.NewWriter(&bytes.Buffer{})
-	err := generateReport(tmplData, allTests, testFileDetailsByPackage, elapsedTestTime, writer)
+	err := generateReport(tmplData, allTests, nil, testFileDetailsByPackage, elapsedTestTime, writer)
 	assertions.Nil(err)
 	assertions.Equal(2, tmplData.NumOfTestPassed)
 	assertions.Equal(1, tmplData.NumOfTestFailed)
@@ -438,7 +438,7 @@ func TestSameTestName(t *testing.T) {
 `
 	stdinScanner := bufio.NewScanner(strings.NewReader(data))
 	cmd := &cobra.Command{}
-	allPackageNames, allTests, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
+	allPackageNames, allTests, _, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
 	assertions.Nil(err)
 	assertions.Len(allPackageNames, 2)
 	assertions.Contains(allPackageNames, "foo")
