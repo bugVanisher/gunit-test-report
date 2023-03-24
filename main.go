@@ -238,7 +238,7 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 				status = allTests[key]
 			}
 			if goTestOutputRow.Action == "pass" || goTestOutputRow.Action == "fail" || goTestOutputRow.Action == "skip" {
-				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/") || strings.Contains(goTestOutputRow.TestName, "/Parallel/")
+				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/") || strings.HasSuffix(goTestOutputRow.TestName, "/Parallel")
 				if goTestOutputRow.Action == "fail" {
 					if isParentTest {
 						parentFailedTestNames = append(parentFailedTestNames, key)
