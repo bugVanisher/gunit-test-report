@@ -97,8 +97,6 @@
         }
 
         .testResultGroup {
-            width: {{.TestResultGroupIndicatorWidth}};
-            height: {{.TestResultGroupIndicatorHeight}};
             background-color: #43c143;
             margin-left: 1px;
             margin-bottom: 1px;
@@ -107,7 +105,7 @@
 
         .testResultGroup.selected {
             border: 1px white solid;
-            background-color: black !important;
+            background-color: #007bff !important;
         }
 
         .testResultGroup.skipped {
@@ -249,7 +247,7 @@
     <div class="cardContainer">
         <div id="testResults">
             {{range $k, $v := .TestResults}}
-                <div class="testResultGroup {{.FailureIndicator}} {{.SkippedIndicator}}" id="{{$k}}"></div>
+                <div class="testResultGroup {{.FailureIndicator}} {{.SkippedIndicator}}" id="{{$k}}">{{.PackageName}}</div>
             {{end}}
         </div>
     </div>
@@ -271,6 +269,17 @@
                                          testGroupListElem: document.getElementById('testGroupList')
                                        });
 
+    function getLastSegment(packageName) {
+      var segments = packageName.split('/');
+      return segments[segments.length - 1];
+    }
+
+    var packageElements = document.getElementsByClassName('testResultGroup');
+    for (var i = 0; i < packageElements.length; i++) {
+      var packageName = packageElements[i].textContent;
+      var lastSegment = getLastSegment(packageName);
+      packageElements[i].textContent = lastSegment;
+    }
 
 </script>
 </body>

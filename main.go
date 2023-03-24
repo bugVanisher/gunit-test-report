@@ -63,6 +63,7 @@ type (
 	testGroupData struct {
 		FailureIndicator string
 		SkippedIndicator string
+		PackageName      string
 		TestResults      []*testStatus
 	}
 
@@ -141,7 +142,7 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 			}()
 			startTestTime := time.Now()
 			allPackageNames, allTests, failedTestNames, err := readTestDataFromStdIn(stdinScanner, flags, cmd)
-			newAllTests := formatAllTests(allTests)
+			_, testsInPackages := formatAllTests(allTests)
 			if err != nil {
 				return errors.New(err.Error() + "\n")
 			}
@@ -151,7 +152,8 @@ func initRootCommand() (*cobra.Command, *templateData, *cmdFlags) {
 			if err != nil {
 				return err
 			}
-			err = generateReport(tmplData, newAllTests, failedTestNames, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
+			//err = generateReport(tmplData, newAllTests, failedTestNames, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
+			err = generateReportV2(tmplData, testsInPackages, failedTestNames, testFileDetailByPackage, elapsedTestTime, reportFileWriter)
 			elapsedTime := time.Since(startTime)
 			elapsedTimeMsg := []byte(fmt.Sprintf("[go-test-report] finished in %s\n", elapsedTime))
 			if _, err := cmd.OutOrStdout().Write(elapsedTimeMsg); err != nil {
@@ -236,7 +238,7 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 				status = allTests[key]
 			}
 			if goTestOutputRow.Action == "pass" || goTestOutputRow.Action == "fail" || goTestOutputRow.Action == "skip" {
-				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/")
+				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/") || strings.Contains(goTestOutputRow.TestName, "/Parallel/")
 				if goTestOutputRow.Action == "fail" {
 					if isParentTest {
 						parentFailedTestNames = append(parentFailedTestNames, key)
@@ -422,6 +424,78 @@ func generateReport(tmplData *templateData, allTests map[string]*testStatus, fai
 	return nil
 }
 
+func generateReportV2(tmplData *templateData, testsInPacakges map[string]map[string]*testStatus, failedTestNames []string, testFileDetailByPackage testFileDetailsByPackage, elapsedTestTime time.Duration, reportFileWriter *bufio.Writer) error {
+	// read the html template from the generated embedded asset go file
+	tpl := template.New("test_report.html.template")
+	testReportHTMLTemplateStr, err := hex.DecodeString(testReportHTMLTemplate)
+	if err != nil {
+		return err
+	}
+	tpl, err = tpl.Parse(string(testReportHTMLTemplateStr))
+	if err != nil {
+		return err
+	}
+	// read Javascript code from the generated embedded asset go file
+	testReportJsCodeStr, err := hex.DecodeString(testReportJsCode)
+	if err != nil {
+		return err
+	}
+
+	tmplData.FailedTestNames = failedTestNames
+	tmplData.NumOfTestPassed = 0
+	tmplData.NumOfTestFailed = 0
+	tmplData.NumOfTestSkipped = 0
+	tmplData.JsCode = template.JS(testReportJsCodeStr)
+	tgID := 0
+
+	// sort the allTests map by test name (this will produce a consistent order when iterating through the map)
+
+	for packageName, allTests := range testsInPacakges {
+		var tests []testRef
+		for test, status := range allTests {
+			tests = append(tests, testRef{test, status.TestName})
+		}
+		sort.Sort(byName(tests))
+		tmplData.TestResults = append(tmplData.TestResults, &testGroupData{})
+		for _, test := range tests {
+			status := allTests[test.key]
+			// add file info(name and position; line and col) associated with the test function
+			testFileInfo := testFileDetailByPackage[status.Package][status.TestName]
+			if testFileInfo != nil {
+				status.TestFileName = testFileInfo.FileName
+				status.TestFunctionDetail = testFileInfo.TestFunctionFilePos
+			}
+			tmplData.TestResults[tgID].TestResults = append(tmplData.TestResults[tgID].TestResults, status)
+			if !status.Passed {
+				if !status.Skipped {
+					tmplData.TestResults[tgID].FailureIndicator = "failed"
+					if !status.Omitted {
+						tmplData.NumOfTestFailed++
+					}
+				} else {
+					tmplData.NumOfTestSkipped++
+				}
+			} else {
+				if !status.Omitted {
+					tmplData.NumOfTestPassed++
+				}
+			}
+		}
+		tmplData.TestResults[tgID].PackageName = packageName
+		tgID++
+	}
+
+	tmplData.NumOfTests = tmplData.NumOfTestPassed + tmplData.NumOfTestFailed + tmplData.NumOfTestSkipped
+	tmplData.TestDuration = elapsedTestTime.Round(time.Millisecond)
+	td := time.Now()
+	tmplData.TestExecutionDate = fmt.Sprintf("%s %d, %d %02d:%02d:%02d",
+		td.Month(), td.Day(), td.Year(), td.Hour(), td.Minute(), td.Second())
+	if err := tpl.Execute(reportFileWriter, tmplData); err != nil {
+		return err
+	}
+	return nil
+}
+
 func parseSizeFlag(tmplData *templateData, flags *cmdFlags) error {
 	flags.sizeFlag = strings.ToLower(flags.sizeFlag)
 	if !strings.Contains(flags.sizeFlag, "x") {
@@ -461,7 +535,7 @@ func checkIfStdinIsPiped() error {
 	return errors.New("ERROR: missing ≪ stdin ≫ pipe")
 }
 
-func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
+func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, map[string]map[string]*testStatus) {
 	testsOutputs := make(map[string][]string)
 	testTitles := make(map[string]string)
 	for key, status := range allTests {
@@ -481,14 +555,14 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 					testsOutputs[key] = append(testsOutputs[key], outputLine)
 				} else {
 					testName, foundTest := jsonObj["Test"]
-					packageName, foundPackage := jsonObj["Package"]
+					packageName, foundPackage := jsonObj["PackageName"]
 					if foundTest && foundPackage && packageName != "" {
 						newKey := packageName.(string) + "." + testName.(string)
 						if _, ok := testsOutputs[newKey]; !ok {
 							testsOutputs[newKey] = make([]string, 0)
 						}
 						delete(jsonObj, "Test")
-						delete(jsonObj, "Package")
+						delete(jsonObj, "PackageName")
 						logTime := jsonObj["time"].(string)
 						l := ""
 						level, foundLevel := jsonObj["level"].(string)
@@ -513,6 +587,7 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 		}
 	}
 	newAllTests := make(map[string]*testStatus)
+	testsInPackages := make(map[string]map[string]*testStatus)
 	for key, _ := range allTests {
 		if _, ok := testsOutputs[key]; ok {
 			if title, ok := testTitles[key]; ok {
@@ -524,7 +599,8 @@ func formatAllTests(allTests map[string]*testStatus) map[string]*testStatus {
 				newAllTests[key] = allTests[key]
 				newAllTests[key].Output = testsOutputs[key]
 			}
+			testsInPackages[allTests[key].Package] = newAllTests
 		}
 	}
-	return newAllTests
+	return newAllTests, testsInPackages
 }
