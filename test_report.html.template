@@ -98,8 +98,8 @@
 
         .testResultGroup {
             background-color: #43c143;
-            margin-left: 1px;
-            margin-bottom: 1px;
+            margin-left: 3px;
+            margin-bottom: 3px;
             box-sizing: border-box;
         }
 

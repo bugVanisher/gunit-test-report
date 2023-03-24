@@ -590,16 +590,20 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 	testsInPackages := make(map[string]map[string]*testStatus)
 	for key, _ := range allTests {
 		if _, ok := testsOutputs[key]; ok {
+			if testsInPackages[allTests[key].Package] == nil {
+				testsInPackages[allTests[key].Package] = make(map[string]*testStatus)
+			}
 			if title, ok := testTitles[key]; ok {
 				newKey := fmt.Sprintf("%s(%s)", key, title)
 				newAllTests[newKey] = allTests[key]
 				newAllTests[newKey].Output = testsOutputs[key]
 				newAllTests[newKey].TestName = fmt.Sprintf("%s(%s)", newAllTests[newKey].TestName, title)
+				testsInPackages[allTests[key].Package][newKey] = newAllTests[newKey]
 			} else {
 				newAllTests[key] = allTests[key]
 				newAllTests[key].Output = testsOutputs[key]
+				testsInPackages[allTests[key].Package][key] = newAllTests[key]
 			}
-			testsInPackages[allTests[key].Package] = newAllTests
 		}
 	}
 	return newAllTests, testsInPackages
