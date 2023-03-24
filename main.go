@@ -555,14 +555,14 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 					testsOutputs[key] = append(testsOutputs[key], outputLine)
 				} else {
 					testName, foundTest := jsonObj["Test"]
-					packageName, foundPackage := jsonObj["PackageName"]
+					packageName, foundPackage := jsonObj["Package"]
 					if foundTest && foundPackage && packageName != "" {
 						newKey := packageName.(string) + "." + testName.(string)
 						if _, ok := testsOutputs[newKey]; !ok {
 							testsOutputs[newKey] = make([]string, 0)
 						}
 						delete(jsonObj, "Test")
-						delete(jsonObj, "PackageName")
+						delete(jsonObj, "Package")
 						logTime := jsonObj["time"].(string)
 						l := ""
 						level, foundLevel := jsonObj["level"].(string)
