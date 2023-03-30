@@ -575,8 +575,13 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 						if foundTitle {
 							testTitles[key] = title
 						} else {
-							bs, _ := json.Marshal(jsonObj)
-							testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("%s|%s ~ %s\n", logTime, l, string(bs)))
+							if _, ok := jsonObj["api"]; ok {
+								bs, _ := json.MarshalIndent(jsonObj, "", "    ")
+								testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("---\n%s|%s ~ \n%s\n---\n\n", logTime, l, string(bs)))
+							} else {
+								bs, _ := json.Marshal(jsonObj)
+								testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("%s|%s ~ %s\n", logTime, l, string(bs)))
+							}
 						}
 					} else {
 						testsOutputs[key] = append(testsOutputs[key], outputLine)
