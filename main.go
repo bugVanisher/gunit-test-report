@@ -535,12 +535,26 @@ func checkIfStdinIsPiped() error {
 	return errors.New("ERROR: missing ≪ stdin ≫ pipe")
 }
 
+type Output struct {
+	isJson  bool
+	line    string
+	jsonObj map[string]interface{}
+}
+type OutputStatus struct {
+	output Output
+	time   time.Time
+}
+
+func (s OutputStatus) Less(other OutputStatus) bool {
+	return s.time.Before(other.time)
+}
 func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, map[string]map[string]*testStatus) {
-	testsOutputs := make(map[string][]string)
+
+	testsOutputs := make(map[string][]OutputStatus)
 	testTitles := make(map[string]string)
 	for key, status := range allTests {
 		if _, ok := testsOutputs[key]; !ok {
-			testsOutputs[key] = make([]string, 0)
+			testsOutputs[key] = make([]OutputStatus, 0)
 		}
 		outputLine := ""
 		for _, output := range status.Output {
@@ -551,40 +565,45 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 				jsonStr := strings.TrimSpace(outputLine)
 				var jsonObj map[string]interface{}
 				err := json.Unmarshal([]byte(jsonStr), &jsonObj)
+				o := Output{
+					isJson: false,
+					line:   outputLine,
+				}
+				out := OutputStatus{
+					output: o,
+					time:   time.Now(),
+				}
 				if err != nil {
-					testsOutputs[key] = append(testsOutputs[key], outputLine)
+					testsOutputs[key] = append(testsOutputs[key], out)
 				} else {
 					testName, foundTest := jsonObj["Test"]
 					packageName, foundPackage := jsonObj["Package"]
-					if foundTest && foundPackage && packageName != "" {
-						newKey := packageName.(string) + "." + testName.(string)
-						if _, ok := testsOutputs[newKey]; !ok {
-							testsOutputs[newKey] = make([]string, 0)
-						}
+					if foundTest && foundPackage {
+
 						delete(jsonObj, "Test")
 						delete(jsonObj, "Package")
 						logTime := jsonObj["time"].(string)
-						l := ""
-						level, foundLevel := jsonObj["level"].(string)
-						if foundLevel {
-							l = level
-							delete(jsonObj, "level")
+
+						t, _ := time.Parse(time.RFC3339, logTime)
+						o = Output{
+							isJson:  true,
+							jsonObj: jsonObj,
 						}
-						delete(jsonObj, "time")
-						title, foundTitle := jsonObj["title"].(string)
-						if foundTitle {
-							testTitles[key] = title
-						} else {
-							if _, ok := jsonObj["api"]; ok {
-								bs, _ := json.MarshalIndent(jsonObj, "", "    ")
-								testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("---\n%s|%s ~ \n%s\n---\n\n", logTime, l, string(bs)))
-							} else {
-								bs, _ := json.Marshal(jsonObj)
-								testsOutputs[newKey] = append(testsOutputs[newKey], fmt.Sprintf("%s|%s ~ %s\n", logTime, l, string(bs)))
+						out = OutputStatus{
+							output: o,
+							time:   t,
+						}
+						if packageName != "" {
+							newKey := packageName.(string) + "." + testName.(string)
+							if _, ok := testsOutputs[newKey]; !ok {
+								testsOutputs[newKey] = make([]OutputStatus, 0)
 							}
+							testsOutputs[newKey] = append(testsOutputs[newKey], out)
+						} else {
+							testsOutputs[key] = append(testsOutputs[key], out)
 						}
 					} else {
-						testsOutputs[key] = append(testsOutputs[key], outputLine)
+						testsOutputs[key] = append(testsOutputs[key], out)
 					}
 				}
 				outputLine = ""
@@ -593,20 +612,56 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 	}
 	newAllTests := make(map[string]*testStatus)
 	testsInPackages := make(map[string]map[string]*testStatus)
+
+	genOutputs := func(key string, outputStatus []OutputStatus) []string {
+		var outputs []string
+		for _, item := range outputStatus {
+			if item.output.isJson {
+				l := ""
+				level, foundLevel := item.output.jsonObj["level"].(string)
+				if foundLevel {
+					l = level
+					delete(item.output.jsonObj, "level")
+				}
+				delete(item.output.jsonObj, "time")
+				title, foundTitle := item.output.jsonObj["title"].(string)
+				if foundTitle {
+					testTitles[key] = title
+				} else {
+					if _, ok := item.output.jsonObj["api"]; ok {
+						bs, _ := json.MarshalIndent(item.output.jsonObj, "", "    ")
+						outputs = append(outputs, fmt.Sprintf("---\n%s|%s ~ \n%s\n---\n", item.time, l, string(bs)))
+					} else {
+						bs, _ := json.Marshal(item.output.jsonObj)
+						outputs = append(outputs, fmt.Sprintf("%s|%s ~ %s\n", item.time, l, string(bs)))
+					}
+				}
+			} else {
+				outputs = append(outputs, item.output.line)
+			}
+		}
+		return outputs
+	}
+
 	for key, _ := range allTests {
 		if _, ok := testsOutputs[key]; ok {
 			if testsInPackages[allTests[key].Package] == nil {
 				testsInPackages[allTests[key].Package] = make(map[string]*testStatus)
 			}
+			sort.Slice(testsOutputs[key], func(i, j int) bool {
+				return OutputStatus{testsOutputs[key][i].output, testsOutputs[key][i].time}.Less(OutputStatus{testsOutputs[key][j].output, testsOutputs[key][j].time})
+			})
+			outputs := genOutputs(key, testsOutputs[key])
 			if title, ok := testTitles[key]; ok {
 				newKey := fmt.Sprintf("%s(%s)", key, title)
 				newAllTests[newKey] = allTests[key]
-				newAllTests[newKey].Output = testsOutputs[key]
+
+				newAllTests[newKey].Output = outputs
 				newAllTests[newKey].TestName = fmt.Sprintf("%s(%s)", newAllTests[newKey].TestName, title)
 				testsInPackages[allTests[key].Package][newKey] = newAllTests[newKey]
 			} else {
 				newAllTests[key] = allTests[key]
-				newAllTests[key].Output = testsOutputs[key]
+				newAllTests[key].Output = outputs
 				testsInPackages[allTests[key].Package][key] = newAllTests[key]
 			}
 		}
