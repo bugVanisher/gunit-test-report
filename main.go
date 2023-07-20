@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/smartystreets/gunit"
 	"github.com/spf13/cobra"
 	"go/ast"
 	"go/parser"
@@ -224,6 +225,8 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 		if err := json.Unmarshal(lineInput, goTestOutputRow); err != nil {
 			return nil, nil, nil, err
 		}
+		goTestOutputRow.TestName = filterTestName(goTestOutputRow.TestName)
+
 		if goTestOutputRow.TestName != "" {
 			var status *testStatus
 			key := goTestOutputRow.Package + "." + goTestOutputRow.TestName
@@ -238,7 +241,7 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 				status = allTests[key]
 			}
 			if goTestOutputRow.Action == "pass" || goTestOutputRow.Action == "fail" || goTestOutputRow.Action == "skip" {
-				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/") || strings.HasSuffix(goTestOutputRow.TestName, "/Parallel")
+				isParentTest := !strings.Contains(goTestOutputRow.TestName, "/")
 				if goTestOutputRow.Action == "fail" {
 					if isParentTest {
 						parentFailedTestNames = append(parentFailedTestNames, key)
@@ -576,12 +579,12 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 				if err != nil {
 					testsOutputs[key] = append(testsOutputs[key], out)
 				} else {
-					testName, foundTest := jsonObj["Test"]
-					packageName, foundPackage := jsonObj["Package"]
+					testName, foundTest := jsonObj[gunit.Test]
+					packageName, foundPackage := jsonObj[gunit.Package]
 					if foundTest && foundPackage {
 
-						delete(jsonObj, "Test")
-						delete(jsonObj, "Package")
+						delete(jsonObj, gunit.Test)
+						delete(jsonObj, gunit.Package)
 						logTime := jsonObj["time"].(string)
 
 						t, _ := time.Parse(time.RFC3339, logTime)
@@ -594,7 +597,7 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 							time:   t,
 						}
 						if packageName != "" {
-							newKey := packageName.(string) + "." + testName.(string)
+							newKey := packageName.(string) + "." + filterTestName(testName.(string))
 							if _, ok := testsOutputs[newKey]; !ok {
 								testsOutputs[newKey] = make([]OutputStatus, 0)
 							}
@@ -624,11 +627,11 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 					delete(item.output.jsonObj, "level")
 				}
 				delete(item.output.jsonObj, "time")
-				title, foundTitle := item.output.jsonObj["title"].(string)
+				title, foundTitle := item.output.jsonObj[gunit.Title].(string)
 				if foundTitle {
 					testTitles[key] = title
 				} else {
-					if _, ok := item.output.jsonObj["api"]; ok {
+					if _, ok := item.output.jsonObj[gunit.RequestApi]; ok {
 						bs, _ := json.MarshalIndent(item.output.jsonObj, "", "    ")
 						outputs = append(outputs, fmt.Sprintf("---\n%s|%s ~ \n%s\n---\n", item.time, l, string(bs)))
 					} else {
@@ -667,4 +670,17 @@ func formatAllTests(allTests map[string]*testStatus) (map[string]*testStatus, ma
 		}
 	}
 	return newAllTests, testsInPackages
+}
+
+func filterTestName(name string) (out string) {
+	out = name
+	parts := strings.Split(name, "/"+gunit.FixtureParallel)
+	if len(parts) == 2 {
+		if parts[1] == "" {
+			out = parts[0]
+		} else {
+			out = parts[0] + parts[1]
+		}
+	}
+	return out
 }
