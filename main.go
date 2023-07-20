@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/smartystreets/gunit"
+	"github.com/smarty/gunit"
 	"github.com/spf13/cobra"
 	"go/ast"
 	"go/parser"
